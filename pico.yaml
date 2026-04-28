@@ -1,20 +1,30 @@
 blueprint:
   name: Lutron Pico - Auto via Device Registry
+  description: >
+    Seleciona um device Lutron e roteia automaticamente qualquer entidade event.* vinculada
+    a esse device. Use uma ação Choose nas regras para decidir o que fazer com cada botão.
+  source_url: https://raw.githubusercontent.com/sergiobaiao/homeassistant-blueprints/refs/heads/main/lutron_pico_auto_device_router.yaml
   domain: automation
 
   input:
     pico_device:
       name: Device do Pico
+      description: Selecione o device Lutron Pico/keypad.
       selector:
         device:
           integration: lutron
 
-    actions:
+    rules:
       name: Regras
+      description: >
+        Adicione ações normalmente. Para separar por botão, adicione uma ação do tipo Choose
+        e use as variáveis pico_event_entity, pico_event_name e pico_event_type nas condições.
+      default: []
       selector:
         action: {}
 
 mode: restart
+max_exceeded: silent
 
 trigger:
   - platform: event
@@ -22,20 +32,17 @@ trigger:
 
 variables:
   pico_entities: "{{ device_entities(pico_device) }}"
+  pico_event_entity: "{{ trigger.event.data.entity_id | default('') }}"
+  pico_event_name: "{{ state_attr(trigger.event.data.entity_id, 'friendly_name') | default('', true) }}"
+  pico_event_type: "{{ trigger.event.data.new_state.attributes.event_type | default('', true) if trigger.event.data.new_state is not none else '' }}"
 
 condition:
   - condition: template
     value_template: >
-      {{ trigger.event.data.entity_id in pico_entities }}
+      {{ pico_event_entity in pico_entities }}
 
   - condition: template
     value_template: >
-      {{ trigger.event.data.entity_id.startswith('event.') }}
+      {{ pico_event_entity.startswith('event.') }}
 
-action:
-  - variables:
-      entity_id: "{{ trigger.event.data.entity_id }}"
-      friendly_name: >
-        {{ state_attr(entity_id, 'friendly_name') }}
-
-  - choose: !input actions
+action: !input rules
