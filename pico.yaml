@@ -1,48 +1,164 @@
 blueprint:
-  name: Lutron Pico - Auto via Device Registry
+  name: Lutron Pico - Até 5 Botões com Entidades Event
   description: >
-    Seleciona um device Lutron e roteia automaticamente qualquer entidade event.* vinculada
-    a esse device. Use uma ação Choose nas regras para decidir o que fazer com cada botão.
-  source_url: https://raw.githubusercontent.com/sergiobaiao/homeassistant-blueprints/refs/heads/main/lutron_pico_auto_device_router.yaml
+    Blueprint genérico para controles Lutron Pico usando o novo modelo de entidades event.*
+    do Home Assistant. Permite configurar até 5 botões, informando a entidade event.*
+    de cada botão e a ação correspondente. Funciona com Picos de 2, 3, 4 ou 5 botões.
+  source_url: https://raw.githubusercontent.com/sergiobaiao/homeassistant-blueprints/refs/heads/main/lutron_pico_5_event_buttons_actions.yaml
   domain: automation
 
   input:
-    pico_device:
-      name: Device do Pico
-      description: Selecione o device Lutron Pico/keypad.
+    event_type:
+      name: Tipo de evento
+      description: Tipo de evento aceito para os botões. Normalmente single_press.
+      default: single_press
       selector:
-        device:
-          integration: lutron
+        select:
+          options:
+            - single_press
+            - double_press
+            - long_press
+            - release
 
-    rules:
-      name: Regras
-      description: >
-        Adicione ações normalmente. Para separar por botão, adicione uma ação do tipo Choose
-        e use as variáveis pico_event_entity, pico_event_name e pico_event_type nas condições.
+    button_1_event:
+      name: Botão 1 - entidade event
+      description: "Exemplo: event.pico_cortinas_home_on"
+      default: ""
+      selector:
+        entity:
+          domain: event
+
+    button_1_action:
+      name: Botão 1 - ação
       default: []
       selector:
         action: {}
 
-mode: restart
+    button_2_event:
+      name: Botão 2 - entidade event
+      description: "Exemplo: event.pico_cortinas_home_raise"
+      default: ""
+      selector:
+        entity:
+          domain: event
+
+    button_2_action:
+      name: Botão 2 - ação
+      default: []
+      selector:
+        action: {}
+
+    button_3_event:
+      name: Botão 3 - entidade event
+      description: "Exemplo: event.pico_cortinas_home_favorite"
+      default: ""
+      selector:
+        entity:
+          domain: event
+
+    button_3_action:
+      name: Botão 3 - ação
+      default: []
+      selector:
+        action: {}
+
+    button_4_event:
+      name: Botão 4 - entidade event
+      description: "Exemplo: event.pico_cortinas_home_lower"
+      default: ""
+      selector:
+        entity:
+          domain: event
+
+    button_4_action:
+      name: Botão 4 - ação
+      default: []
+      selector:
+        action: {}
+
+    button_5_event:
+      name: Botão 5 - entidade event
+      description: "Exemplo: event.pico_cortinas_home_off"
+      default: ""
+      selector:
+        entity:
+          domain: event
+
+    button_5_action:
+      name: Botão 5 - ação
+      default: []
+      selector:
+        action: {}
+
+mode: single
 max_exceeded: silent
 
-trigger:
-  - platform: event
-    event_type: state_changed
+triggers:
+  - trigger: event.received
+    id: button_1
+    target:
+      entity_id: !input button_1_event
+    options:
+      event_type:
+        - !input event_type
 
-variables:
-  pico_entities: "{{ device_entities(pico_device) }}"
-  pico_event_entity: "{{ trigger.event.data.entity_id | default('') }}"
-  pico_event_name: "{{ state_attr(trigger.event.data.entity_id, 'friendly_name') | default('', true) }}"
-  pico_event_type: "{{ trigger.event.data.new_state.attributes.event_type | default('', true) if trigger.event.data.new_state is not none else '' }}"
+  - trigger: event.received
+    id: button_2
+    target:
+      entity_id: !input button_2_event
+    options:
+      event_type:
+        - !input event_type
 
-condition:
-  - condition: template
-    value_template: >
-      {{ pico_event_entity in pico_entities }}
+  - trigger: event.received
+    id: button_3
+    target:
+      entity_id: !input button_3_event
+    options:
+      event_type:
+        - !input event_type
 
-  - condition: template
-    value_template: >
-      {{ pico_event_entity.startswith('event.') }}
+  - trigger: event.received
+    id: button_4
+    target:
+      entity_id: !input button_4_event
+    options:
+      event_type:
+        - !input event_type
 
-action: !input rules
+  - trigger: event.received
+    id: button_5
+    target:
+      entity_id: !input button_5_event
+    options:
+      event_type:
+        - !input event_type
+
+conditions: []
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: button_1
+        sequence: !input button_1_action
+
+      - conditions:
+          - condition: trigger
+            id: button_2
+        sequence: !input button_2_action
+
+      - conditions:
+          - condition: trigger
+            id: button_3
+        sequence: !input button_3_action
+
+      - conditions:
+          - condition: trigger
+            id: button_4
+        sequence: !input button_4_action
+
+      - conditions:
+          - condition: trigger
+            id: button_5
+        sequence: !input button_5_action
