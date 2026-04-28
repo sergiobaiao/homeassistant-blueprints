@@ -1,96 +1,82 @@
 blueprint:
-  name: Lutron Pico - Até 5 Botões com Entidades Event
+  name: Lutron Pico (5 Buttons - Event Entities)
   description: >
-    Blueprint genérico para controles Lutron Pico usando o novo modelo de entidades event.*
-    do Home Assistant. Permite configurar até 5 botões, informando a entidade event.*
-    de cada botão e a ação correspondente. Funciona com Picos de 2, 3, 4 ou 5 botões.
+    Blueprint for Lutron Pico remotes using event.* entities.
+    Supports up to 5 buttons, each with its own event entity and action.
+
   source_url: https://raw.githubusercontent.com/sergiobaiao/homeassistant-blueprints/refs/heads/main/lutron_pico_5_event_buttons_actions.yaml
+
   domain: automation
 
   input:
-    event_type:
-      name: Tipo de evento
-      description: Tipo de evento aceito para os botões. Normalmente single_press.
-      default: single_press
-      selector:
-        select:
-          options:
-            - single_press
-            - double_press
-            - long_press
-            - release
-
     button_1_event:
-      name: Botão 1 - entidade event
-      description: "Exemplo: event.pico_cortinas_home_on"
+      name: Button 1 Event
+      description: "Example: event.pico_cortinas_home_on"
       default: ""
       selector:
         entity:
           domain: event
 
     button_1_action:
-      name: Botão 1 - ação
+      name: Button 1 Action
       default: []
       selector:
         action: {}
 
     button_2_event:
-      name: Botão 2 - entidade event
-      description: "Exemplo: event.pico_cortinas_home_raise"
+      name: Button 2 Event
+      description: "Example: event.pico_cortinas_home_off"
       default: ""
       selector:
         entity:
           domain: event
 
     button_2_action:
-      name: Botão 2 - ação
+      name: Button 2 Action
       default: []
       selector:
         action: {}
 
     button_3_event:
-      name: Botão 3 - entidade event
-      description: "Exemplo: event.pico_cortinas_home_favorite"
+      name: Button 3 Event
       default: ""
       selector:
         entity:
           domain: event
 
     button_3_action:
-      name: Botão 3 - ação
+      name: Button 3 Action
       default: []
       selector:
         action: {}
 
     button_4_event:
-      name: Botão 4 - entidade event
-      description: "Exemplo: event.pico_cortinas_home_lower"
+      name: Button 4 Event
       default: ""
       selector:
         entity:
           domain: event
 
     button_4_action:
-      name: Botão 4 - ação
+      name: Button 4 Action
       default: []
       selector:
         action: {}
 
     button_5_event:
-      name: Botão 5 - entidade event
-      description: "Exemplo: event.pico_cortinas_home_off"
+      name: Button 5 Event
       default: ""
       selector:
         entity:
           domain: event
 
     button_5_action:
-      name: Botão 5 - ação
+      name: Button 5 Action
       default: []
       selector:
         action: {}
 
-mode: single
+mode: restart
 max_exceeded: silent
 
 triggers:
@@ -100,7 +86,7 @@ triggers:
       entity_id: !input button_1_event
     options:
       event_type:
-        - !input event_type
+        - single_press
 
   - trigger: event.received
     id: button_2
@@ -108,7 +94,7 @@ triggers:
       entity_id: !input button_2_event
     options:
       event_type:
-        - !input event_type
+        - single_press
 
   - trigger: event.received
     id: button_3
@@ -116,7 +102,7 @@ triggers:
       entity_id: !input button_3_event
     options:
       event_type:
-        - !input event_type
+        - single_press
 
   - trigger: event.received
     id: button_4
@@ -124,7 +110,7 @@ triggers:
       entity_id: !input button_4_event
     options:
       event_type:
-        - !input event_type
+        - single_press
 
   - trigger: event.received
     id: button_5
@@ -132,9 +118,7 @@ triggers:
       entity_id: !input button_5_event
     options:
       event_type:
-        - !input event_type
-
-conditions: []
+        - single_press
 
 actions:
   - choose:
