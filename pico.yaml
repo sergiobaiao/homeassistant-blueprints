@@ -1,0 +1,41 @@
+blueprint:
+  name: Lutron Pico - Auto via Device Registry
+  domain: automation
+
+  input:
+    pico_device:
+      name: Device do Pico
+      selector:
+        device:
+          integration: lutron
+
+    actions:
+      name: Regras
+      selector:
+        action: {}
+
+mode: restart
+
+trigger:
+  - platform: event
+    event_type: state_changed
+
+variables:
+  pico_entities: "{{ device_entities(pico_device) }}"
+
+condition:
+  - condition: template
+    value_template: >
+      {{ trigger.event.data.entity_id in pico_entities }}
+
+  - condition: template
+    value_template: >
+      {{ trigger.event.data.entity_id.startswith('event.') }}
+
+action:
+  - variables:
+      entity_id: "{{ trigger.event.data.entity_id }}"
+      friendly_name: >
+        {{ state_attr(entity_id, 'friendly_name') }}
+
+  - choose: !input actions
