@@ -1,35 +1,34 @@
 blueprint:
   name: Lutron Pico (up to 5 Buttons - Event Entities)
   description: >
-    Blueprint for Lutron Pico remotes using event.* entities. Supports up to 5
-    buttons, each with its own event entity and action. A Pico device must also
-    be selected so the automation is associated with the device and events are
-    validated against that device. Version 0.11
-
+    Blueprint for Lutron Pico remotes using event.* entities. Supports up to 5 buttons,
+    each with its own event entity and action. Requires selecting the Pico device so
+    the automation is associated with the device and only accepts events that belong
+    to that device. Version 0.12
   source_url: https://github.com/sergiobaiao/homeassistant-blueprints/blob/main/pico.yaml
-
   domain: automation
 
   input:
     pico_device:
       name: Pico Device
-      description: >
-        Select the Lutron Pico device. This links the automation to the device
-        and prevents events from another Pico from triggering this automation.
+      description: Select the Lutron Pico device that owns the event entities below.
       selector:
         device:
           integration: lutron
 
     event_type:
       name: Event Type
-      description: Usually single_press for Lutron Pico event entities.
+      description: Usually single_press. Use another value only if the event entity supports it.
       default: single_press
       selector:
         select:
+          mode: dropdown
           options:
             - single_press
             - press
             - release
+            - long_press
+            - double_press
 
     button_1_event:
       name: Button 1 Event
@@ -104,69 +103,84 @@ blueprint:
 mode: restart
 max_exceeded: silent
 
-trigger:
-  - platform: event
-    event_type: state_changed
-
 variables:
   pico_device: !input pico_device
-  event_type_filter: !input event_type
-  button_1_event: !input button_1_event
-  button_2_event: !input button_2_event
-  button_3_event: !input button_3_event
-  button_4_event: !input button_4_event
-  button_5_event: !input button_5_event
-  configured_button_events:
-    - !input button_1_event
-    - !input button_2_event
-    - !input button_3_event
-    - !input button_4_event
-    - !input button_5_event
-  fired_entity: "{{ trigger.event.data.entity_id }}"
-  fired_event_type: >
-    {{ trigger.event.data.new_state.attributes.event_type
-       if trigger.event.data.new_state is not none
-       else none }}
+  selected_event_type: !input event_type
 
-action:
+triggers:
+  # Do NOT listen to every state_changed event. Each trigger listens only to the
+  # configured event entity. Empty inputs use entity_id "" and will never match.
+  - trigger: event
+    id: button_1
+    event_type: state_changed
+    event_data:
+      entity_id: !input button_1_event
+
+  - trigger: event
+    id: button_2
+    event_type: state_changed
+    event_data:
+      entity_id: !input button_2_event
+
+  - trigger: event
+    id: button_3
+    event_type: state_changed
+    event_data:
+      entity_id: !input button_3_event
+
+  - trigger: event
+    id: button_4
+    event_type: state_changed
+    event_data:
+      entity_id: !input button_4_event
+
+  - trigger: event
+    id: button_5
+    event_type: state_changed
+    event_data:
+      entity_id: !input button_5_event
+
+conditions:
+  # Only event.* entities are allowed.
   - condition: template
     value_template: >
-      {{ fired_entity is string and fired_entity.startswith('event.') }}
+      {{ trigger.event.data.entity_id is string and trigger.event.data.entity_id.startswith('event.') }}
 
+  # The selected event entity must belong to the selected Pico device.
   - condition: template
     value_template: >
-      {{ fired_entity in configured_button_events }}
+      {{ trigger.event.data.entity_id in device_entities(pico_device) }}
 
+  # Match only the selected event type. Use .get() to avoid template warnings when
+  # a state_changed event does not carry this attribute.
   - condition: template
     value_template: >
-      {{ fired_entity in device_entities(pico_device) }}
+      {{ trigger.event.data.new_state is not none
+         and trigger.event.data.new_state.attributes.get('event_type') == selected_event_type }}
 
-  - condition: template
-    value_template: >
-      {{ fired_event_type == event_type_filter }}
-
+actions:
   - choose:
       - conditions:
-          - condition: template
-            value_template: "{{ fired_entity == button_1_event }}"
+          - condition: trigger
+            id: button_1
         sequence: !input button_1_action
 
       - conditions:
-          - condition: template
-            value_template: "{{ fired_entity == button_2_event }}"
+          - condition: trigger
+            id: button_2
         sequence: !input button_2_action
 
       - conditions:
-          - condition: template
-            value_template: "{{ fired_entity == button_3_event }}"
+          - condition: trigger
+            id: button_3
         sequence: !input button_3_action
 
       - conditions:
-          - condition: template
-            value_template: "{{ fired_entity == button_4_event }}"
+          - condition: trigger
+            id: button_4
         sequence: !input button_4_action
 
       - conditions:
-          - condition: template
-            value_template: "{{ fired_entity == button_5_event }}"
+          - condition: trigger
+            id: button_5
         sequence: !input button_5_action
