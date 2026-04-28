@@ -1,9 +1,9 @@
 blueprint:
-  name: Lutron Pico (5 Buttons - Event Entities)
+  name: Lutron Pico (up to 5 Buttons - Event Entities)
   description: >
     Blueprint for Lutron Pico remotes using event.* entities.
     Supports up to 5 buttons, each with its own event entity and action.
-    Version 0.5
+    Version 0.6
 
   source_url: https://raw.githubusercontent.com/sergiobaiao/homeassistant-blueprints/main/pico.yaml
 
