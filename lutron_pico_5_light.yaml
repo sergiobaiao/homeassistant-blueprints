@@ -1,58 +1,60 @@
 blueprint:
   name: Lutron Pico 5 Botões (event.received) - Ações Livres
   description: >
-    Version 0.0.5. Blueprint para controles Lutron Pico no novo modelo do
-    Home Assistant, usando entidades event.* e trigger event.received.
-    Cada botão pode executar qualquer ação do Home Assistant.
+    Blueprint para controle remoto Lutron Pico de 5 botões usando entidades event.*
+    no novo modelo do Home Assistant. Cada botão pode executar qualquer ação
+    do Home Assistant, como light, switch, cover, scene, script ou media_player.
   source_url: https://raw.githubusercontent.com/sergiobaiao/homeassistant-blueprints/refs/heads/main/lutron_pico_5_light.yaml
   domain: automation
 
   input:
     pico_on_event:
-      name: Evento botão ON
-      description: Exemplo: event.pico_cortinas_home_on
+      name: Evento do botão ON
+      description: "Exemplo: event.pico_cortinas_home_on"
       selector:
         entity:
           domain: event
 
     pico_raise_event:
-      name: Evento botão RAISE / subir
-      description: Exemplo: event.pico_cortinas_home_raise
+      name: Evento do botão RAISE
+      description: "Exemplo: event.pico_cortinas_home_raise"
       selector:
         entity:
           domain: event
 
     pico_favorite_event:
-      name: Evento botão FAVORITE / meio
-      description: Exemplo: event.pico_cortinas_home_favorite
+      name: Evento do botão FAVORITE
+      description: "Exemplo: event.pico_cortinas_home_favorite"
       selector:
         entity:
           domain: event
 
     pico_lower_event:
-      name: Evento botão LOWER / descer
-      description: Exemplo: event.pico_cortinas_home_lower
+      name: Evento do botão LOWER
+      description: "Exemplo: event.pico_cortinas_home_lower"
       selector:
         entity:
           domain: event
 
     pico_off_event:
-      name: Evento botão OFF
-      description: Exemplo: event.pico_cortinas_home_off
+      name: Evento do botão OFF
+      description: "Exemplo: event.pico_cortinas_home_off"
       selector:
         entity:
           domain: event
 
     event_type:
       name: Tipo de evento
-      description: Normalmente use single_press.
+      description: "Normalmente use: single_press"
       default: single_press
       selector:
         select:
           options:
             - single_press
-            - long_press
             - double_press
+            - long_press
+            - release
+          custom_value: true
 
     action_on:
       name: Ação botão ON
@@ -83,9 +85,6 @@ blueprint:
       default: []
       selector:
         action: {}
-
-mode: single
-max_exceeded: silent
 
 triggers:
   - trigger: event.received
@@ -156,3 +155,5 @@ actions:
           - condition: trigger
             id: off
         sequence: !input action_off
+
+mode: single
