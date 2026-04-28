@@ -1,15 +1,36 @@
 blueprint:
   name: Lutron Pico (up to 5 Buttons - Event Entities)
   description: >
-    Blueprint for Lutron Pico remotes using event.* entities.
-    Supports up to 5 buttons, each with its own event entity and action.
-    Version 0.6
+    Blueprint for Lutron Pico remotes using event.* entities. Supports up to 5
+    buttons, each with its own event entity and action. A Pico device must also
+    be selected so the automation is associated with the device and events are
+    validated against that device. Version 0.11
 
-  source_url: https://raw.githubusercontent.com/sergiobaiao/homeassistant-blueprints/main/pico.yaml
+  source_url: https://github.com/sergiobaiao/homeassistant-blueprints/blob/main/pico.yaml
 
   domain: automation
 
   input:
+    pico_device:
+      name: Pico Device
+      description: >
+        Select the Lutron Pico device. This links the automation to the device
+        and prevents events from another Pico from triggering this automation.
+      selector:
+        device:
+          integration: lutron
+
+    event_type:
+      name: Event Type
+      description: Usually single_press for Lutron Pico event entities.
+      default: single_press
+      selector:
+        select:
+          options:
+            - single_press
+            - press
+            - release
+
     button_1_event:
       name: Button 1 Event
       description: "Example: event.pico_cortinas_home_on"
@@ -40,6 +61,7 @@ blueprint:
 
     button_3_event:
       name: Button 3 Event
+      description: "Example: event.pico_cortinas_home_raise"
       default: ""
       selector:
         entity:
@@ -53,6 +75,7 @@ blueprint:
 
     button_4_event:
       name: Button 4 Event
+      description: "Example: event.pico_cortinas_home_lower"
       default: ""
       selector:
         entity:
@@ -66,6 +89,7 @@ blueprint:
 
     button_5_event:
       name: Button 5 Event
+      description: "Example: event.pico_cortinas_home_favorite"
       default: ""
       selector:
         entity:
@@ -80,70 +104,69 @@ blueprint:
 mode: restart
 max_exceeded: silent
 
-triggers:
-  - trigger: event.received
-    id: button_1
-    target:
-      entity_id: !input button_1_event
-    options:
-      event_type:
-        - single_press
+trigger:
+  - platform: event
+    event_type: state_changed
 
-  - trigger: event.received
-    id: button_2
-    target:
-      entity_id: !input button_2_event
-    options:
-      event_type:
-        - single_press
+variables:
+  pico_device: !input pico_device
+  event_type_filter: !input event_type
+  button_1_event: !input button_1_event
+  button_2_event: !input button_2_event
+  button_3_event: !input button_3_event
+  button_4_event: !input button_4_event
+  button_5_event: !input button_5_event
+  configured_button_events:
+    - !input button_1_event
+    - !input button_2_event
+    - !input button_3_event
+    - !input button_4_event
+    - !input button_5_event
+  fired_entity: "{{ trigger.event.data.entity_id }}"
+  fired_event_type: >
+    {{ trigger.event.data.new_state.attributes.event_type
+       if trigger.event.data.new_state is not none
+       else none }}
 
-  - trigger: event.received
-    id: button_3
-    target:
-      entity_id: !input button_3_event
-    options:
-      event_type:
-        - single_press
+action:
+  - condition: template
+    value_template: >
+      {{ fired_entity is string and fired_entity.startswith('event.') }}
 
-  - trigger: event.received
-    id: button_4
-    target:
-      entity_id: !input button_4_event
-    options:
-      event_type:
-        - single_press
+  - condition: template
+    value_template: >
+      {{ fired_entity in configured_button_events }}
 
-  - trigger: event.received
-    id: button_5
-    target:
-      entity_id: !input button_5_event
-    options:
-      event_type:
-        - single_press
+  - condition: template
+    value_template: >
+      {{ fired_entity in device_entities(pico_device) }}
 
-actions:
+  - condition: template
+    value_template: >
+      {{ fired_event_type == event_type_filter }}
+
   - choose:
       - conditions:
-          - condition: trigger
-            id: button_1
+          - condition: template
+            value_template: "{{ fired_entity == button_1_event }}"
         sequence: !input button_1_action
 
       - conditions:
-          - condition: trigger
-            id: button_2
+          - condition: template
+            value_template: "{{ fired_entity == button_2_event }}"
         sequence: !input button_2_action
 
       - conditions:
-          - condition: trigger
-            id: button_3
+          - condition: template
+            value_template: "{{ fired_entity == button_3_event }}"
         sequence: !input button_3_action
 
       - conditions:
-          - condition: trigger
-            id: button_4
+          - condition: template
+            value_template: "{{ fired_entity == button_4_event }}"
         sequence: !input button_4_action
 
       - conditions:
-          - condition: trigger
-            id: button_5
+          - condition: template
+            value_template: "{{ fired_entity == button_5_event }}"
         sequence: !input button_5_action
