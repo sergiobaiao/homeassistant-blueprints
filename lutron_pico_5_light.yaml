@@ -1,31 +1,29 @@
 blueprint:
-  name: Lutron Pico 5 Botões por Device (event.*) - Ações Livres
+  name: Lutron Pico 5 Botões (Device + event.*) - Ações Livres
   description: >
-    Version 0.0.2
-    Usa um único device Lutron Pico e detecta automaticamente as entidades event.*
-    dos botões ON, RAISE, FAVORITE, LOWER e OFF associadas ao device.
-    Cada botão pode executar qualquer ação do Home Assistant.
+    Version 0.0.3. Usa um único device Lutron Pico e detecta automaticamente
+    as entidades event.* dos botões ON, RAISE, FAVORITE, LOWER e OFF associadas
+    ao device. Cada botão pode executar qualquer ação do Home Assistant.
   domain: automation
+
   input:
     pico_device:
       name: Device do Pico
-      description: Selecione o device Lutron Pico. O blueprint localizará automaticamente os events dos botões desse device.
+      description: Selecione o device Lutron Pico.
       selector:
         device:
           integration: lutron
 
     event_type:
       name: Tipo de evento
-      description: Normalmente use single_press. Altere se sua integração expuser outro tipo, como long_press.
+      description: Normalmente use single_press.
       default: single_press
       selector:
         select:
           options:
             - single_press
-            - double_press
             - long_press
-            - release
-          custom_value: true
+            - double_press
 
     action_on:
       name: Ação botão ON
@@ -57,24 +55,34 @@ blueprint:
       selector:
         action: {}
 
+mode: single
+max_exceeded: silent
+
 variables:
   pico_device: !input pico_device
   wanted_event_type: !input event_type
-  pico_event_entities: >-
-    {{ device_entities(pico_device) | select('match', '^event\\.') | list }}
+  pico_entities: "{{ device_entities(pico_device) }}"
   event_on: >-
-    {{ pico_event_entities | select('search', '_on$') | list | first | default('') }}
+    {{ pico_entities | select('match', '^event\\..*_on$') | list | first | default('') }}
   event_raise: >-
-    {{ pico_event_entities | select('search', '_raise$') | list | first | default('') }}
+    {{ pico_entities | select('match', '^event\\..*_raise$') | list | first | default('') }}
   event_favorite: >-
-    {{ pico_event_entities | select('search', '_favorite$') | list | first | default('') }}
+    {{ pico_entities | select('match', '^event\\..*_favorite$') | list | first | default('') }}
   event_lower: >-
-    {{ pico_event_entities | select('search', '_lower$') | list | first | default('') }}
+    {{ pico_entities | select('match', '^event\\..*_lower$') | list | first | default('') }}
   event_off: >-
-    {{ pico_event_entities | select('search', '_off$') | list | first | default('') }}
+    {{ pico_entities | select('match', '^event\\..*_off$') | list | first | default('') }}
 
 triggers:
   - trigger: event.received
+    id: pico_any_button
+    target:
+      device_id: !input pico_device
+    options:
+      event_type:
+        - !input event_type
+
+conditions: []
 
 actions:
   - choose:
@@ -107,6 +115,3 @@ actions:
             value_template: >-
               {{ trigger.event.data.entity_id == event_off and trigger.event.data.event_type == wanted_event_type }}
         sequence: !input action_off
-
-mode: queued
-max: 10
