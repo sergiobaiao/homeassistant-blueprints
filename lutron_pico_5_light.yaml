@@ -1,42 +1,31 @@
 blueprint:
-  name: Lutron Pico 5 Botões (event.*) - Ações Livres
+  name: Lutron Pico 5 Botões por Device (event.*) - Ações Livres
   description: >
-    Version 0.0.1
-    Blueprint para controle remoto Lutron Pico (5 botões) usando entidades event.*
-    do novo modelo do Home Assistant. Permite definir ações livres para qualquer
-    entidade (light, switch, cover, scene, script, media_player, etc).
-
+    Version 0.0.2
+    Usa um único device Lutron Pico e detecta automaticamente as entidades event.*
+    dos botões ON, RAISE, FAVORITE, LOWER e OFF associadas ao device.
+    Cada botão pode executar qualquer ação do Home Assistant.
   domain: automation
   input:
-    pico_on_event:
-      name: Evento botão ON
+    pico_device:
+      name: Device do Pico
+      description: Selecione o device Lutron Pico. O blueprint localizará automaticamente os events dos botões desse device.
       selector:
-        entity:
-          domain: event
+        device:
+          integration: lutron
 
-    pico_raise_event:
-      name: Evento botão RAISE (subir)
+    event_type:
+      name: Tipo de evento
+      description: Normalmente use single_press. Altere se sua integração expuser outro tipo, como long_press.
+      default: single_press
       selector:
-        entity:
-          domain: event
-
-    pico_favorite_event:
-      name: Evento botão FAVORITE (meio)
-      selector:
-        entity:
-          domain: event
-
-    pico_lower_event:
-      name: Evento botão LOWER (descer)
-      selector:
-        entity:
-          domain: event
-
-    pico_off_event:
-      name: Evento botão OFF
-      selector:
-        entity:
-          domain: event
+        select:
+          options:
+            - single_press
+            - double_press
+            - long_press
+            - release
+          custom_value: true
 
     action_on:
       name: Ação botão ON
@@ -68,68 +57,56 @@ blueprint:
       selector:
         action: {}
 
-mode: restart
-max_exceeded: silent
+variables:
+  pico_device: !input pico_device
+  wanted_event_type: !input event_type
+  pico_event_entities: >-
+    {{ device_entities(pico_device) | select('match', '^event\\.') | list }}
+  event_on: >-
+    {{ pico_event_entities | select('search', '_on$') | list | first | default('') }}
+  event_raise: >-
+    {{ pico_event_entities | select('search', '_raise$') | list | first | default('') }}
+  event_favorite: >-
+    {{ pico_event_entities | select('search', '_favorite$') | list | first | default('') }}
+  event_lower: >-
+    {{ pico_event_entities | select('search', '_lower$') | list | first | default('') }}
+  event_off: >-
+    {{ pico_event_entities | select('search', '_off$') | list | first | default('') }}
 
-trigger:
-  - platform: event
-    event_type: event.received
-    id: on
-    event_data:
-      entity_id: !input pico_on_event
-      event_type: single_press
+triggers:
+  - trigger: event.received
 
-  - platform: event
-    event_type: event.received
-    id: raise
-    event_data:
-      entity_id: !input pico_raise_event
-      event_type: single_press
-
-  - platform: event
-    event_type: event.received
-    id: favorite
-    event_data:
-      entity_id: !input pico_favorite_event
-      event_type: single_press
-
-  - platform: event
-    event_type: event.received
-    id: lower
-    event_data:
-      entity_id: !input pico_lower_event
-      event_type: single_press
-
-  - platform: event
-    event_type: event.received
-    id: off
-    event_data:
-      entity_id: !input pico_off_event
-      event_type: single_press
-
-action:
+actions:
   - choose:
       - conditions:
-          - condition: trigger
-            id: on
+          - condition: template
+            value_template: >-
+              {{ trigger.event.data.entity_id == event_on and trigger.event.data.event_type == wanted_event_type }}
         sequence: !input action_on
 
       - conditions:
-          - condition: trigger
-            id: raise
+          - condition: template
+            value_template: >-
+              {{ trigger.event.data.entity_id == event_raise and trigger.event.data.event_type == wanted_event_type }}
         sequence: !input action_raise
 
       - conditions:
-          - condition: trigger
-            id: favorite
+          - condition: template
+            value_template: >-
+              {{ trigger.event.data.entity_id == event_favorite and trigger.event.data.event_type == wanted_event_type }}
         sequence: !input action_favorite
 
       - conditions:
-          - condition: trigger
-            id: lower
+          - condition: template
+            value_template: >-
+              {{ trigger.event.data.entity_id == event_lower and trigger.event.data.event_type == wanted_event_type }}
         sequence: !input action_lower
 
       - conditions:
-          - condition: trigger
-            id: off
+          - condition: template
+            value_template: >-
+              {{ trigger.event.data.entity_id == event_off and trigger.event.data.event_type == wanted_event_type }}
         sequence: !input action_off
+
+mode: queued
+max: 10
